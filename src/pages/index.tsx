@@ -315,7 +315,7 @@ export default function Home() {
           ) : (
             <div style={{ marginBottom: '20px' }}>
               <input
-                type="password"
+                type="hidden"
                 value={password}
                 readOnly
                 style={{
