@@ -14,6 +14,7 @@ export default function Home() {
   const [testDecrypted, setTestDecrypted] = useState('')
   const [testPassword, setTestPassword] = useState('')
   const [hasAvailableId, setHasAvailableId] = useState(false)
+  const [waitingForConfirmation, setWaitingForConfirmation] = useState(false);
 
   useEffect(() => {
     if (session) {
@@ -25,8 +26,15 @@ export default function Home() {
     try {
       
       // Generate hash from username + " 0"
-      const hashString = await generateSHA256(session.actor.toString() + " 0")
-      console.log("Generated hash:", hashString)
+      if (!session || !session.actor) {
+        throw new Error("Session or actor is not defined.");
+      }
+      
+      const actorString = session.actor?.toString() ?? "default_actor";
+      const hashString = await generateSHA256(actorString + " 0");
+      //console.log("Generated hash:", hashString)
+      setWaitingForConfirmation(true);
+
       const response = await fetch(`https://wax-testnet.eosphere.io/v1/chain/get_table_rows`, {
         method: 'POST',
         headers: {
@@ -49,31 +57,34 @@ export default function Home() {
       console.log("id:"+JSON.stringify(data, null, 2))
       if (data.rows && data.rows.length > 0) {
         setHasAvailableId(true)
-        setPassword(data.rows[0].id.toString())
+        setPassword(data.rows[0].id.toString())        
       } else {
         setHasAvailableId(false)
         setPassword('')
       }
+      setWaitingForConfirmation(false);
     } catch (error) {
       console.error('Error checking available ID:', error)
       setHasAvailableId(false)
+      setWaitingForConfirmation(false);
     }
   }
 
   // Add this function to generate SHA-256 hash
-  const generateSHA256 = async (text: string): Promise<string> => {
-    const encoder = new TextEncoder()
-    const data = encoder.encode(text)
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data)
-    const hashArray = Array.from(new Uint8Array(hashBuffer))
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
-    return hashHex
+  async function generateSHA256(input: string): Promise<string> {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(input);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hashBuffer))
+      .map(byte => byte.toString(16).padStart(2, '0'))
+      .join('');
   }
-
+ 
   const handleGenerateId = async () => {
     if (!session) return
     
     try {
+      setWaitingForConfirmation(true);
       const action = {
         account: 'hashtesttest',
         name: 'generateid',
@@ -91,11 +102,13 @@ export default function Home() {
       // Wait 5 seconds then check for the ID
       setTimeout(async () => {
         await checkAvailableId()
+        setWaitingForConfirmation(false);
       }, 5000)
       
     } catch (error) {
       console.error('Error generating ID:', error)
       alert('Failed to generate ID')
+      setWaitingForConfirmation(false);
     }
   }
 
@@ -266,8 +279,10 @@ export default function Home() {
           <p>Logged in as: {session.actor.toString()}</p>
           {!hasAvailableId ? (
             <div style={{ marginBottom: '20px' }}>
-              <p>You need to generate an ID before sending messages</p>
+              <p>You need to generate an ID before sending messages.</p>
               <div style={{ display: 'flex', gap: '10px' }}>
+                <div>
+
                 <button
                   onClick={handleGenerateId}
                   style={{
@@ -278,6 +293,9 @@ export default function Home() {
                 >
                   Generate ID
                 </button>
+                {waitingForConfirmation && <p>Waiting for TX confirmation...</p>}
+                </div>
+                <div>
                 <Link href="/messages"
                   style={{
                     padding: '10px 20px',
@@ -291,6 +309,7 @@ export default function Home() {
                 >
                   View Messages
                 </Link>
+                </div>
               </div>
             </div>
           ) : (
@@ -454,4 +473,4 @@ export default function Home() {
       )}
     </div>
   )
-} 
+}

@@ -123,7 +123,7 @@ export default function Messages() {
             return {
               id: row.id,
               user: row.user,
-              release_date: row.release_date,
+              release_date: row.release_date.toString(),
               hash_str: row.hash_str,
               message: message
             }
@@ -199,17 +199,17 @@ export default function Messages() {
                 border: '1px solid #ccc',
                 borderRadius: '8px',
                 padding: '15px',
-                backgroundColor: isMessageAvailable(msg.release_date) ? '#f9f9f9' : '#f0f0f0'
+                backgroundColor: isMessageAvailable(msg.release_date.toString()) ? '#f9f9f9' : '#f0f0f0'
               }}
             >
               <div style={{ marginBottom: '10px' }}>
                 <strong>From:</strong> {msg.user}
               </div>
               <div style={{ marginBottom: '10px' }}>
-                <strong>Release Date:</strong> {formatDate(msg.release_date)}
+                <strong>Release Date:</strong> {formatDate(msg.release_date.toString())}
               </div>
               <div style={{ marginBottom: '10px' }}>
-                {isMessageAvailable(msg.release_date) ? (
+                {isMessageAvailable(msg.release_date.toString()) ? (
                   <div>
                     <strong>Message: </strong>
                     {msg.message}
